@@ -124,8 +124,14 @@ module ScaffoldingExtensions::MetaDataMapper
   # Also includes :many_to_one associations, replacing
   # the foriegn keys with the association itself.  Can be set with an instance variable.
   def scaffold_fields(action = :default)
-    return @scaffold_fields if @scaffold_fields
-    if (action == :show) 
+    if action == :default
+      return @scaffold_fields if @scaffold_fields
+    else
+      if (eval "defined?(@scaffold_#{action.to_s}_fields) and @scaffold_#{action.to_s}_fields") then
+        return eval "@scaffold_#{action.to_s}_fields"
+      end
+    end
+    if (action == :show)
       fields = (properties.map {|a| a.name}) - [scaffold_primary_key]
     else
       fields = (properties.map {|a| a.name}) - [scaffold_primary_key] - [:created_at,:updated_at]
@@ -135,7 +141,13 @@ module ScaffoldingExtensions::MetaDataMapper
       fields.delete(get_key_array_safe(reflection.send(:child_key)).name)
       fields.push(reflection.name)
     end
-    @scaffold_fields = fields.sort_by{|f| f.to_s}
+    value = fields.sort_by{|f| f.to_s}
+    if action == :default
+      @scaffold_fields = value
+    else
+      eval "@scaffold_#{action.to_s}_fields = value"
+    end
+    value
   end
 
   # The foreign key for the given reflection
